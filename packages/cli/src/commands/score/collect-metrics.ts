@@ -122,6 +122,30 @@ export function collectMetrics({
 }: CollectMetricsOptions): CollectMetricsResult {
   const removedComposition = stripCompositionKeywords(document.parsed);
 
+  try {
+    return collectMetricsInner({
+      document,
+      types,
+      resolvedRefMap,
+      ctx,
+      debugOperationId,
+      removedComposition,
+    });
+  } finally {
+    restoreCompositionKeywords(removedComposition);
+  }
+}
+
+function collectMetricsInner({
+  document,
+  types,
+  resolvedRefMap,
+  ctx,
+  debugOperationId,
+  removedComposition,
+}: CollectMetricsOptions & {
+  removedComposition: Map<object, StrippedComposition>;
+}): CollectMetricsResult {
   const schemaWalkState = createSchemaWalkState();
   const schemaVisitor = createSchemaMetricVisitor(schemaWalkState);
   const normalizedSchemaVisitors = normalizeVisitors(
@@ -236,6 +260,10 @@ export function collectMetrics({
         : null;
     const hasDiscriminatorBranches =
       Array.isArray(discriminatorRefs) && discriminatorRefs.length > 0;
+    const hasParentDiscriminator = !!(
+      disc?.propertyName ||
+      (isPlainObject(disc?.mapping) && Object.keys(disc.mapping).length > 0)
+    );
 
     let result: SchemaStats;
 
@@ -258,6 +286,7 @@ export function collectMetrics({
           ...maxBranch,
           polymorphismCount: maxBranch.polymorphismCount + polyBranches.length,
           anyOfCount: maxBranch.anyOfCount + (polyKeyword === 'anyOf' ? polyBranches.length : 0),
+          hasDiscriminator: maxBranch.hasDiscriminator || hasParentDiscriminator,
         };
       }
 
@@ -322,8 +351,6 @@ export function collectMetrics({
     resolvedRefMap,
     ctx,
   });
-
-  restoreCompositionKeywords(removedComposition);
 
   return {
     metrics: getDocumentMetrics(accumulator),

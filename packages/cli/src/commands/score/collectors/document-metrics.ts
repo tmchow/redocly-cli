@@ -212,6 +212,8 @@ interface CurrentOperationContext {
   inRequestBody: boolean;
   inResponse: boolean;
   currentResponseCode: string;
+  /** True once structured error counting ran for the current error response (Response or first MediaType). */
+  errorResponseStructuredCounted: boolean;
 
   refsUsed: Set<string>;
 }
@@ -278,6 +280,7 @@ function createOperationContext(
     inRequestBody: false,
     inResponse: false,
     currentResponseCode: '',
+    errorResponseStructuredCounted: false,
 
     refsUsed: new Set(),
   };
@@ -337,8 +340,10 @@ export function createScoreVisitor(accumulator: ScoreAccumulator): Oas3Visitor {
 
         if (isErrorCode(code)) {
           current.totalErrorResponses++;
+          current.errorResponseStructuredCounted = false;
           if (!response.content && response.description) {
             current.structuredErrorResponseCount++;
+            current.errorResponseStructuredCounted = true;
           }
         }
       },
@@ -359,8 +364,13 @@ export function createScoreVisitor(accumulator: ScoreAccumulator): Oas3Visitor {
           if (current.inResponse) current.responseExamplePresent = true;
         }
 
-        if (current.inResponse && isErrorCode(current.currentResponseCode)) {
+        if (
+          current.inResponse &&
+          isErrorCode(current.currentResponseCode) &&
+          !current.errorResponseStructuredCounted
+        ) {
           current.structuredErrorResponseCount++;
+          current.errorResponseStructuredCounted = true;
         }
 
         if (mediaType.schema) {
@@ -372,15 +382,9 @@ export function createScoreVisitor(accumulator: ScoreAccumulator): Oas3Visitor {
           const stats = accumulator.walkSchema(mediaType.schema, isDebugTarget);
 
           current.propertyCount = Math.max(current.propertyCount, stats.propertyCount);
-          current.totalSchemaProperties = Math.max(
-            current.totalSchemaProperties,
-            stats.totalSchemaProperties
-          );
-          current.schemaPropertiesWithDescription = Math.max(
-            current.schemaPropertiesWithDescription,
-            stats.schemaPropertiesWithDescription
-          );
-          current.constraintCount = Math.max(current.constraintCount, stats.constraintCount);
+          current.totalSchemaProperties += stats.totalSchemaProperties;
+          current.schemaPropertiesWithDescription += stats.schemaPropertiesWithDescription;
+          current.constraintCount += stats.constraintCount;
           current.polymorphismCount = Math.max(current.polymorphismCount, stats.polymorphismCount);
           current.anyOfCount = Math.max(current.anyOfCount, stats.anyOfCount);
           if (stats.hasDiscriminator) current.hasDiscriminator = true;
