@@ -56,6 +56,7 @@ export { parseYaml, stringifyYaml } from './js-yaml/index.js';
 export {
   unescapePointerFragment,
   isRef,
+  isMappingRef,
   isAbsoluteUrl,
   getDir,
   resolvePath,
