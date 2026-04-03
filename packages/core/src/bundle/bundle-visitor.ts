@@ -287,7 +287,7 @@ export function makeBundleVisitor({
 
     if (!componentsGroup[name] && prevName !== name) {
       ctx.report({
-        message: `Two schemas are referenced with the same name but different content. Renamed ${prevName} to ${name}.`,
+        message: `Two ${componentType} are referenced with the same name but different content. Renamed ${prevName} to ${name}.`,
         location: ctx.location,
         forceSeverity: componentRenamingConflicts,
       });

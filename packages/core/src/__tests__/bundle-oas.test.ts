@@ -50,7 +50,7 @@ describe('bundle-oas', () => {
     expect(problems).toHaveLength(1);
     expect(problems[0].severity).toBe('warn');
     expect(problems[0].message).toEqual(
-      `Two schemas are referenced with the same name but different content. Renamed first to first-2.`
+      `Two examples are referenced with the same name but different content. Renamed first to first-2.`
     );
     expect(res.parsed).toMatchSnapshot();
   });
@@ -62,7 +62,7 @@ describe('bundle-oas', () => {
     });
     expect(problems).toHaveLength(1);
     expect(problems[0].message).toEqual(
-      `Two schemas are referenced with the same name but different content. Renamed param-b to param-b-2.`
+      `Two parameters are referenced with the same name but different content. Renamed param-b to param-b-2.`
     );
     expect(res.parsed).toMatchSnapshot();
   });
